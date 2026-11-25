@@ -22,9 +22,13 @@ h2{color:var(--w);font-size:1.5rem;margin:34px 0 14px;padding-bottom:6px;border-
 .card li:before{content:"-";position:absolute;right:0;color:var(--tq)}
 .up{border:1px dashed var(--g);border-radius:6px;padding:18px;text-align:center;position:relative}
 #msg{color:var(--tq);margin-top:8px;min-height:1.2em}
-#gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px}
-#gal div{position:relative}
-#gal img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px}
+#gal{display:flex;gap:8px;margin-top:14px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+#gal div{position:relative;flex:0 0 78%;max-width:320px;scroll-snap-align:center}
+#gal img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;cursor:zoom-in}
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;align-items:center;justify-content:center;touch-action:pan-y}
+#lb.on{display:flex}#lb img{max-width:96vw;max-height:88vh;object-fit:contain}
+#lb button{position:absolute;background:none;border:0;color:#fff;font-size:42px;padding:12px;line-height:1}
+#lbx{top:6px;right:8px}#lbp{left:4px;top:50%}#lbn{right:4px;top:50%}#lbc{position:absolute;bottom:14px;color:#ddd;font-size:14px}
 #gal button{position:absolute;top:6px;left:6px;background:#000a;color:#fff;border:0;border-radius:50%;width:28px;height:28px;font-size:16px}
 small{color:var(--g);display:block;margin-top:10px}
 footer{text-align:center;padding:32px 0 90px;color:var(--g)}
@@ -60,13 +64,23 @@ footer{text-align:center;padding:32px 0 90px;color:var(--g)}
 </main>
 <footer><div class="wrap"><b>אלבז</b> · מחברים איכות לביצוע<br>0523-956-988</div></footer>
 <div class="fab"><a class="btn" href="https://wa.me/972523956988">וואטסאפ</a></div>
+<div id="lb" dir="ltr"><button id="lbx" type="button">×</button><button id="lbp" type="button">‹</button><img id="lbi" alt=""><button id="lbn" type="button">›</button><div id="lbc"></div></div>
 <script>
 const mem=[];let db=null;
 const gal=document.getElementById('gal'),inp=document.getElementById('f'),msg=document.getElementById('msg');
 function render(){gal.innerHTML='';mem.forEach((o,idx)=>{const d=document.createElement('div'),i=document.createElement('img');
- i.src=o.url;const b=document.createElement('button');b.type='button';b.textContent='×';
+ i.src=o.url;i.onclick=()=>openLb(idx);const b=document.createElement('button');b.type='button';b.textContent='×';
  b.onclick=()=>{mem.splice(idx,1);if(db&&o.key!=null){try{db.transaction('p','readwrite').objectStore('p').delete(o.key)}catch(e){}}render()};
  d.append(i,b);gal.append(d)})}
+let cur=0;const lb=document.getElementById('lb'),lbi=document.getElementById('lbi'),lbc=document.getElementById('lbc');
+function openLb(n){cur=(n+mem.length)%mem.length;lbi.src=mem[cur].url;lbc.textContent=(cur+1)+' / '+mem.length;lb.classList.add('on')}
+document.getElementById('lbx').onclick=()=>lb.classList.remove('on');
+document.getElementById('lbp').onclick=()=>openLb(cur-1);
+document.getElementById('lbn').onclick=()=>openLb(cur+1);
+lb.addEventListener('click',e=>{if(e.target===lb)lb.classList.remove('on')});
+let sx=null;lb.addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});
+lb.addEventListener('touchend',e=>{if(sx===null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>40)openLb(cur+(dx<0?1:-1))});
+document.addEventListener('keydown',e=>{if(!lb.classList.contains('on'))return;if(e.key==='Escape')lb.classList.remove('on');if(e.key==='ArrowLeft')openLb(cur-1);if(e.key==='ArrowRight')openLb(cur+1)});
 try{const q=indexedDB.open('albaz',1);
  q.onupgradeneeded=()=>q.result.createObjectStore('p',{autoIncrement:true});
  q.onsuccess=()=>{db=q.result;try{db.transaction('p').objectStore('p').openCursor().onsuccess=e=>{const c=e.target.result;if(!c)return;
